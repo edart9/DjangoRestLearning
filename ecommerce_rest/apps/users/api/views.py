@@ -3,6 +3,7 @@ from apps.users.models import User
 from apps.users.api.serializers import UserSerializer
 from rest_framework.response import Response
 from rest_framework.decorators import api_view 
+from rest_framework import status
 
 @api_view(['GET','POST'])
 def user_api_view(request):
@@ -14,7 +15,7 @@ def user_api_view(request):
             #usamos el serializados para serializar a json todos los valores de User y con el many le decimos que son varios objetos
         users_serializer=UserSerializer(users,many=True)
             # Se da la respuesta, lo cual es la parte de data
-        return Response(users_serializer.data)
+        return Response(users_serializer.data, status=status.HTTP_200_OK)
     
     elif request.method =='POST':
             #si hacemos esto deserializa y lo combierte en un objeto y compara si tiene los caracteres del modelo
@@ -24,33 +25,31 @@ def user_api_view(request):
             #guardamos los datos en el modelo (base de datos o orm de django)
             user_serializer.save()
             #se responde mostrandos los datos resientemente guardados 
-            return Response(user_serializer.data)
+            return Response(user_serializer.data, status=status.HTTP_200_CREATED)
             #si hay algun error en la respuesta, respondemos los errores que devuele el serializador
-        return Response(user_serializer.errors)
+        return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 #creamos una nueva funcion para mantener el orden 
 @api_view(['GET','PUT','DELETE'])
-def user_datail_view(request,pk=None):
-    #verificamos si es get
-    if request.method=='GET':
-        #hacemos un filtro para que si no encuentra un user con ese id, no devuelva codigo, sino una cadena vacia 
-        user=User.objects.filter(id=pk).first()
-        #Le decimos que serialise el valor del usuario con la pk que llamamos 
-        user_serializer=UserSerializer(user)
-        #devolvemos los datos en formato json que saco el serializador con ese id 
-        return Response(user_serializer.data)
-    elif request.method=='PUT':
-        #sacamos el objeto dependiendo del id 
-        user=User.objects.filter(id=pk).first()
-        #aqui vemos que es parecido a los otros dos metodos, pero cuando pasamos una data especifica y le decimos que la compare con otra
-        #con los mismos campos, este va a actualizar los campos que no sean iguales
-        user_serializer=UserSerializer(user,data=request.data)
-        if user_serializer.is_valid():
-            user_serializer.save()
-            return Response(user_serializer.data)
-        return Response(user_serializer.errors)
+def user_datail_api_view(request,pk=None):
+    user=User.objects.filter(id=pk).first()
+    if user:
+        #verificamos si es get
+        if request.method=='GET':
+            #Le decimos que serialise el valor del usuario con la pk que llamamos 
+            user_serializer=UserSerializer(user)
+            #devolvemos los datos en formato json que saco el serializador con ese id 
+            return Response(user_serializer.data, status=status.HTTP_200_OK)
+        elif request.method=='PUT':
+            #aqui vemos que es parecido a los otros dos metodos, pero cuando pasamos una data especifica y le decimos que la compare con otra
+            #con los mismos campos, este va a actualizar los campos que no sean iguales
+            user_serializer=UserSerializer(user,data=request.data)
+            if user_serializer.is_valid():
+                user_serializer.save()
+                return Response(user_serializer.data, status=status.HTTP_200_OK)
+            return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    elif request.method=='DELETE':
-        user=User.objects.filter(id=pk).first()
-        user.delete()
-        return Response('Eliminado')
+        elif request.method=='DELETE':
+            user.delete()
+            return Response({'Message':'Usuario eliminado correctacmente!'}, status=status.HTTP_200_OK)
+    return Response({'message':'No se ha encontrado un usuario con estos datos'}, status=status.HTTP_400_BAD_REQUEST)
