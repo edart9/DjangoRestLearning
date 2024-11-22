@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from apps.users.models import User
-from apps.users.api.serializers import UserSerializer
+from apps.users.api.serializers import UserSerializer,UserListSerializer
 from rest_framework.response import Response
 from rest_framework.decorators import api_view 
 from rest_framework import status
@@ -11,10 +11,11 @@ def user_api_view(request):
     if request.method =='GET':
         #cuando es get hacemos lo siguiente : 
             #guardamos todos lo datos de User en users 
-        users=User.objects.all()
+            #.values agarra valores especificos de un objeto 
+        users=User.objects.all().values('id','username','email','password')
             #usamos el serializados para serializar a json todos los valores de User y con el many le decimos que son varios objetos
-        users_serializer=UserSerializer(users,many=True)
-            # Se da la respuesta, lo cual es la parte de data
+        users_serializer=UserListSerializer(users,many=True)
+
         return Response(users_serializer.data, status=status.HTTP_200_OK)
     
     elif request.method =='POST':
@@ -25,7 +26,7 @@ def user_api_view(request):
             #guardamos los datos en el modelo (base de datos o orm de django)
             user_serializer.save()
             #se responde mostrandos los datos resientemente guardados 
-            return Response(user_serializer.data, status=status.HTTP_200_CREATED)
+            return Response(user_serializer.data, status=status.HTTP_201_CREATED)
             #si hay algun error en la respuesta, respondemos los errores que devuele el serializador
         return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
